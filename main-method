@@ -1,0 +1,83 @@
+#!/bin/sh
+""":"
+EXE=$0
+while [ -L "$EXE" ]; do
+    EXE=`readlink $EXE`
+done
+if [ "$EXE" == "$0" ]; then
+    echo Bootstrapping performance examples. Creating application symlinks.
+    cd `dirname $EXE`
+    python `basename $EXE` `grep -l "@MainMethod.Entry" src/main/java/org/neo4j/examples/performance/*.java`
+    exit $?
+fi
+WORKING_DIR=`pwd`
+
+MAIN_CLASS=`python $0`
+CLEAN=
+JVM_ARGUMENTS="-DMainMethod.script=$EXE"
+ARGUMENTS=
+HEAP=-Xmx1024m
+
+for ARG in "$@"; do
+    case "$ARG" in
+        -Xmx*)
+            HEAP=$ARG
+            ;;
+        -XX*)
+            JVM_ARGUMENTS="$ARG $JVM_ARGUMENTS"
+            ;;
+        =*)
+            echo Illegal argument \"$ARG\" 1>&2
+            exit 1
+            ;;
+        --=*)
+            echo Illegal argument \"$ARG\" 1>&2
+            exit 1
+            ;;
+        --*=*)
+            JVM_ARGUMENTS="$JVM_ARGUMENTS -D$MAIN_CLASS.${ARG:2}"
+            ;;
+        *=*)
+            JVM_ARGUMENTS="$JVM_ARGUMENTS -D$ARG"
+            ;;
+        clean)
+            CLEAN=clean
+            ;;
+        *)
+            ARGUMENTS="$ARGUMENTS $ARG"
+            ;;
+    esac
+done
+
+MAIN_CLASS=org.neo4j.examples.performance.$MAIN_CLASS
+JVM_ARGUMENTS="-server $HEAP $JVM_ARGUMENTS "
+if [ -n "$ARGUMENTS" ]; then
+    ARGUMENTS=" $ARGUMENTS"
+fi
+
+cd `dirname $EXE`
+
+mvn $CLEAN compile exec:exec -Dexec.executable="java"\
+    -Dexec.workingdir="$WORKING_DIR"\
+    -Dexec.args="$JVM_ARGUMENTS-cp %classpath $MAIN_CLASS$ARGUMENTS"
+
+exit $?
+":"""
+
+import sys, os
+if len(sys.argv) > 1:
+    import re
+    for target in sys.argv[1:]:
+        target = os.path.basename(target)[:-5]
+        target = '-'.join(
+            [part.lower() for part in re.split('([A-Z][a-z]*)', target) if part]
+        )
+        target = os.path.join(os.path.dirname(sys.argv[0]), target)
+        try:
+            os.symlink(sys.argv[0], target)
+        except:
+            print('* "%s" already exists' % target)
+        else:
+            print('* created "%s"' % target)
+else:
+    print(os.path.basename(sys.argv[0]).title().replace('-','').replace('_',''))

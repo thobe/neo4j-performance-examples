@@ -7,6 +7,8 @@ import java.util.Random;
 import org.neo4j.commons.iterator.FilteringIterator;
 import org.neo4j.commons.iterator.IteratorWrapper;
 import org.neo4j.commons.iterator.NestingIterator;
+import org.neo4j.examples.performance.ConfiguredExample.IntrospectionAttribute;
+import org.neo4j.examples.performance.ConfiguredExample.StringRepresentation;
 import org.neo4j.graphdb.DynamicRelationshipType;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
@@ -17,6 +19,7 @@ import org.neo4j.kernel.EmbeddedGraphDatabase;
 import org.neo4j.kernel.impl.batchinsert.BatchInserter;
 import org.neo4j.kernel.impl.batchinsert.BatchInserterImpl;
 
+@StringRepresentation( IntrospectionAttribute.GARBAGE_COLLECTORS )
 public class UsersAndBooks extends ConfiguredExample
 {
     public static void main( String[] args )
@@ -181,6 +184,7 @@ public class UsersAndBooks extends ConfiguredExample
              * relationship store, reflecting the state it would be in if
              * created incrementally from actual usage.
              */
+            // FIXME: this might not be correct...
             int offset = random.nextInt( numUsers );
             for ( int user = 0; user < numUsers; user++, count++ )
             {

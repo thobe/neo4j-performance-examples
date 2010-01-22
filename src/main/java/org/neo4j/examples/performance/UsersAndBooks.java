@@ -1,7 +1,9 @@
 package org.neo4j.examples.performance;
 
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.Iterator;
+import java.util.Map;
 import java.util.Random;
 
 import org.neo4j.commons.iterator.FilteringIterator;
@@ -48,23 +50,25 @@ public class UsersAndBooks extends ConfiguredExample
         {
             sum += number;
         }
-        return ( ( double ) sum ) / ( ( double ) ( max - min ) );
+        return ( (double) sum ) / ( (double) ( max - min ) );
     }
 
     private enum Execution
     {
-        MIN, MAX, EXPECTED,
+        MIN,
+        MAX,
+        EXPECTED,
     }
 
     private final Random random = new Random();
-    private final RelationshipType FAVORITE = DynamicRelationshipType
-        .withName( "FAVORITE" );
+    private final RelationshipType FAVORITE = DynamicRelationshipType.withName( "FAVORITE" );
     private final String storeDir;
     private final int numBooks;
     private final int numUsers;
     private final boolean renderProgression;
     private final int numTraversals;
     private final boolean optimistic;
+    private final boolean addNodeLabels;
 
     private UsersAndBooks( String neo4j_config_file )
     {
@@ -76,31 +80,44 @@ public class UsersAndBooks extends ConfiguredExample
         int MAX_FAVORITES = intProperty( "maxFavorites", 1000 );
         double FAVORITES;
         Execution kind = enumProperty( Execution.class, "kind",
-            Execution.EXPECTED );
+                Execution.EXPECTED );
         switch ( kind )
         {
-            case MIN:
-                FAVORITES = MIN_FAVORITES;
-                break;
-            case MAX:
-                FAVORITES = MAX_FAVORITES;
-                break;
-            case EXPECTED:
-            default:
-                FAVORITES = expectedValue( MIN_FAVORITES, MAX_FAVORITES );
+        case MIN:
+            FAVORITES = MIN_FAVORITES;
+            break;
+        case MAX:
+            FAVORITES = MAX_FAVORITES;
+            break;
+        case EXPECTED:
+        default:
+            FAVORITES = expectedValue( MIN_FAVORITES, MAX_FAVORITES );
         }
         double FAVORITED = USERS * FAVORITES / BOOKS;
-        this.numBooks = ( int ) Math.ceil( FAVORITES );
-        this.numUsers = ( int ) Math.ceil( FAVORITED );
+        this.numBooks = (int) Math.ceil( FAVORITES );
+        this.numUsers = (int) Math.ceil( FAVORITED );
         this.renderProgression = booleanProperty( "renderProgression", true );
         this.numTraversals = intProperty( "numTraversals", 2 );
         this.optimistic = booleanProperty( "optimistic", false );
+        this.addNodeLabels = booleanProperty( "addNodeLabels", false );
         // Print out statistics about the started instance
-        System.out.println( "Users and Books traversal example, " + kind.name()
-            + " type " + ( this.optimistic ? "optimistic " : " " )
-            + "graph.\nEach user has " + numBooks
-            + " favorite books and each book is the favorite of " + numUsers
-            + " users." );
+        System.out.println( this );
+    }
+
+    @Override
+    protected void buildStringRepresentation( StringBuilder result )
+    {
+        result.append( "\nUsing " );
+        result.append( enumProperty( Execution.class, "kind",
+                Execution.EXPECTED ).name() );
+        result.append( " type " );
+        if ( optimistic ) result.append( "optimistic " );
+        result.append( "graph.\n" );
+        result.append( "Each user has " );
+        result.append( numBooks );
+        result.append( " favorite books and each book is the favorite of " );
+        result.append( numUsers );
+        result.append( " users.\n" );
     }
 
     @Override
@@ -115,7 +132,7 @@ public class UsersAndBooks extends ConfiguredExample
     private void createGraph()
     {
         BatchInserter batch = new BatchInserterImpl( storeDir,
-            neo4jConfiguration );
+                neo4jConfiguration );
         try
         {
             create( batch );
@@ -129,7 +146,7 @@ public class UsersAndBooks extends ConfiguredExample
     private void traverseGraph()
     {
         GraphDatabaseService graphdb = new EmbeddedGraphDatabase( storeDir,
-            neo4jConfiguration );
+                neo4jConfiguration );
         try
         {
             for ( int i = 0; i < numTraversals; i++ )
@@ -161,14 +178,14 @@ public class UsersAndBooks extends ConfiguredExample
         long start = System.currentTimeMillis();
         for ( int nodeid = 1; nodeid <= total; nodeid++ )
         {
-            batch.createNode( nodeid, null );
+            batch.createNode( nodeid, properties( nodeid ) );
             printProgress( nodeid, total, start );
         }
         long time = System.currentTimeMillis() - start;
         System.out.println( "Inserted " + total + " nodes in "
-            + ( time / 1000.0 ) + " seconds.\nThat is "
-            + ( ( ( double ) total ) / ( ( double ) time ) )
-            + " nodes per millisecond." );
+                            + ( time / 1000.0 ) + " seconds.\nThat is "
+                            + ( ( (double) total ) / ( (double) time ) )
+                            + " nodes per millisecond." );
 
         // Create relationships
         total = numBooks * numUsers;
@@ -184,29 +201,51 @@ public class UsersAndBooks extends ConfiguredExample
              * relationship store, reflecting the state it would be in if
              * created incrementally from actual usage.
              */
-            // FIXME: this might not be correct...
-            int offset = random.nextInt( numUsers );
+            int offset = random.nextInt( numUsers ); // where to place 0
             for ( int user = 0; user < numUsers; user++, count++ )
             {
                 if ( ( optimistic && user == 0 )
-                    || ( !optimistic && user == offset ) )
+                     || ( !optimistic && user == offset ) )
                 {
-                    batch
-                        .createRelationship( 0, bookId( book ), FAVORITE, null );
+                    favorite( batch, 0, bookId( book ) );
                 }
-                batch
-                    .createRelationship( userId( user ),
+                favorite( batch, userId( book * numUsers + user ),
                         bookId( optimistic ? book
-                            : ( ( offset + book ) % numBooks ) ), FAVORITE,
-                        null );
+                                : ( ( book + user ) % numBooks ) ) );
                 printProgress( count, total, start );
             }
         }
         time = System.currentTimeMillis() - start;
-        System.out.println( "Inserted " + ( total + numBooks )
-            + " relationships in " + ( time / 1000.0 ) + " seconds.\nThat is "
-            + ( ( ( double ) ( total + numBooks ) ) / ( ( double ) time ) )
-            + " relationships per millisecond." );
+        System.out.println( "Inserted "
+                            + ( total + numBooks )
+                            + " relationships in "
+                            + ( time / 1000.0 )
+                            + " seconds.\nThat is "
+                            + ( ( (double) ( total + numBooks ) ) / ( (double) time ) )
+                            + " relationships per millisecond." );
+    }
+
+    private void favorite( BatchInserter batch, long usernode, long booknode )
+    {
+        batch.createRelationship( usernode, booknode, FAVORITE, null );
+    }
+
+    private Map<String, Object> properties( int nodeid )
+    {
+        if ( addNodeLabels )
+        {
+            Map<String, Object> result = new HashMap<String, Object>();
+            if ( nodeid <= numBooks )
+            {
+                result.put( "Book", nodeid );
+            }
+            else
+            {
+                result.put( "User", nodeid - numBooks );
+            }
+            return result;
+        }
+        return null;
     }
 
     private void traverse( GraphDatabaseService graphdb )
@@ -229,12 +268,12 @@ public class UsersAndBooks extends ConfiguredExample
         }
         time = System.currentTimeMillis() - time;
         System.out.println( "Counted " + count + " (of " + total
-            + ") users in " + ( time / 1000.0 ) + " seconds." );
+                            + ") users in " + ( time / 1000.0 ) + " seconds." );
         total += numBooks;
         System.out.println( "Traversed " + total + " relationships in "
-            + ( time / 1000.0 ) + " seconds.\nThat is "
-            + ( ( ( double ) total ) / ( ( double ) time ) )
-            + " relationships per millisecond." );
+                            + ( time / 1000.0 ) + " seconds.\nThat is "
+                            + ( ( (double) total ) / ( (double) time ) )
+                            + " relationships per millisecond." );
     }
 
     private Iterable<Node> iterator( final Node start )
@@ -253,20 +292,20 @@ public class UsersAndBooks extends ConfiguredExample
         {
             public Iterator<Node> iterator()
             {
-                return new NestingIterator<Node, Relationship>( start
-                    .getRelationships( FAVORITE ).iterator() )
+                return new NestingIterator<Node, Relationship>(
+                        start.getRelationships( FAVORITE ).iterator() )
                 {
                     @Override
                     protected Iterator<Node> createNestedIterator(
-                        Relationship item )
+                            Relationship item )
                     {
                         final Node node = item.getOtherNode( start );
                         Iterator<Node> iter = new IteratorWrapper<Node, Relationship>(
-                            node.getRelationships( FAVORITE ).iterator() )
+                                node.getRelationships( FAVORITE ).iterator() )
                         {
                             @Override
                             protected Node underlyingObjectToObject(
-                                Relationship object )
+                                    Relationship object )
                             {
                                 return object.getOtherNode( node );
                             }

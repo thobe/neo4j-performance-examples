@@ -1,0 +1,108 @@
+#!/bin/sh
+
+EXE=$0
+while [ -L "$EXE" ]; do
+    EXE=`readlink $EXE`
+done
+cd `dirname $EXE`
+./main-method &> /dev/null
+
+function memory_mapping() {
+    echo neostore.nodestore.db.mapped_memory=100M
+    echo neostore.relationshipstore.db.mapped_memory=$1
+    echo neostore.propertystore.db.mapped_memory=0M
+    echo neostore.propertystore.db.strings.mapped_memory=0M
+    echo neostore.propertystore.db.arrays.mapped_memory=0M
+}
+
+function small() {
+    memory_mapping 512M
+}
+
+function small_old() {
+    small
+    echo use_old_cache=true
+}
+
+function medium() {
+    memory_mapping 1024M
+}
+
+function medium_old() {
+    medium
+    echo use_old_cache=true    
+}
+
+function large() {
+    memory_mapping 1536M
+}
+
+function large_old() {
+    large
+    echo use_old_cache=true    
+}
+
+function huge() {
+    memory_mapping 1536M
+}
+
+function huge_old() {
+    large
+    echo use_old_cache=true    
+}
+
+function configuration() {
+    echo renderProgression=false
+}
+
+function insertion() {
+    echo neostore.nodestore.db.mapped_memory=100M
+    echo neostore.relationshipstore.db.mapped_memory=512M
+    echo neostore.propertystore.db.mapped_memory=0M
+    echo neostore.propertystore.db.strings.mapped_memory=0M
+    echo neostore.propertystore.db.arrays.mapped_memory=0M
+    echo use_old_cache=true
+}
+
+function jvm_configurations() {
+    echo === 32 bit Server VM 1G heap ===
+    ./users-and-books -d32 -server -Xmx1024m $@
+    echo === 32 bit Server VM 2G heap ===
+    ./users-and-books -d32 -server -Xmx2048m $@
+    echo === 64 bit Server VM 2G heap ===
+    ./users-and-books -d64 -server -Xmx2048m $@
+}
+
+configuration > UsersAndBooks.properties
+insertion > create.properties
+
+rm -f create.out
+
+for kind in {MIN,EXPECTED,MAX}; do
+    for opt in {true,false}; do
+        echo === $kind optimistic=$opt === >> create.out
+        ./users-and-books create clean --kind=$kind --optimistic=$opt\
+            >> create.out
+        case "$kind" in
+            MIN)
+                iter=5
+                ;;
+            EXPECTED)
+                iter=3
+                ;;
+            MAX)
+                iter=2
+                ;;
+        esac
+        for settings in {small,medium,large,huge}{,_old}; do
+            ${settings} > traverse.properties
+            jvm_configurations traverse --kind=$kind --numTraversals=$iter\
+                &> traverse-${kind}-${settings}-opt_${opt}.out
+        done
+    done
+    break
+done
+
+tar cf `date +%Y-%m-%d.%H.%M`.tar *.out
+
+rm *.properties *.out

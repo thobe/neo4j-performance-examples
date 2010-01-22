@@ -23,7 +23,7 @@ for ARG in "$@"; do
         -Xmx*)
             HEAP=$ARG
             ;;
-        -XX*)
+        -XX* | -d* | -client | -server)
             JVM_ARGUMENTS="$ARG $JVM_ARGUMENTS"
             ;;
         =*)

@@ -1,8 +1,5 @@
 package org.neo4j.examples.performance;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
@@ -11,7 +8,6 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 public final class MainMethod
@@ -42,16 +38,17 @@ public final class MainMethod
                 assertIsValidEntry( method );
                 if ( entries.put( method.getName(), method ) != null )
                 {
-                    throw new IllegalArgumentException( cls.getName()
-                        + " has multiple entry methods called "
-                        + method.getName() );
+                    throw new IllegalArgumentException(
+                            cls.getName()
+                                    + " has multiple entry methods called "
+                                    + method.getName() );
                 }
             }
         }
         if ( entries.isEmpty() )
         {
             throw new IllegalArgumentException( cls.getName()
-                + " has no entry methods." );
+                                                + " has no entry methods." );
         }
         this.entries = entries;
     }
@@ -69,9 +66,9 @@ public final class MainMethod
         }
         else if ( params.length == 1 )
         {
-            Class<?> param = params[ 0 ];
+            Class<?> param = params[0];
             if ( !param.equals( String.class )
-                && !param.equals( String[].class ) )
+                 && !param.equals( String[].class ) )
             {
                 throw new IllegalArgumentException();
             }
@@ -81,26 +78,28 @@ public final class MainMethod
     public void dispatch( String[] args )
     {
         String method = null;
-        if ( args.length > 0 && entries.containsKey( args[ 0 ] ) )
+        if ( args.length > 0 && entries.containsKey( args[0] ) )
         {
-            method = args[ 0 ];
-            String[] newargs = new String[ args.length - 1 ];
+            method = args[0];
+            String[] newargs = new String[args.length - 1];
             System.arraycopy( args, 1, newargs, 0, newargs.length );
             args = newargs;
         }
         else
         {
             method = System.getProperty( getClass().getSimpleName()
-                + ".dispatch" );
+                                         + ".dispatch" );
         }
-        Method entry;
-        while ( ( entry = entries.get( method ) ) == null )
+        Method entry = entries.get( method );
+        if ( entry == null )
         {
-            method = readLine();
-            if ( method == null )
+            System.out.println( "Please specify one of the "
+                                + "following valid entry points:" );
+            for ( String name : entries.keySet() )
             {
-                return;
+                System.out.println( name );
             }
+            return;
         }
         try
         {
@@ -108,13 +107,13 @@ public final class MainMethod
             {
                 entry.invoke( null );
             }
-            else if ( entry.getParameterTypes()[ 0 ].equals( String[].class ) )
+            else if ( entry.getParameterTypes()[0].equals( String[].class ) )
             {
-                entry.invoke( null, ( ( Object ) args ) );
+                entry.invoke( null, ( (Object) args ) );
             }
             else
             {
-                entry.invoke( null, ( Object[] ) args );
+                entry.invoke( null, (Object[]) args );
             }
         }
         catch ( InvocationTargetException e )
@@ -130,27 +129,6 @@ public final class MainMethod
         {
             // TODO Auto-generated catch block
             e.printStackTrace();
-        }
-    }
-
-    private String readLine()
-    {
-        System.out.println( "Welcome to " + name + ", valid entry points:" );
-        for ( String entry : entries.keySet() )
-        {
-            System.out.println( entry );
-        }
-        System.out.print( "please choose entry point: " );
-        InputStreamReader converter = new InputStreamReader( System.in );
-        BufferedReader in = new BufferedReader( converter );
-        try
-        {
-            return in.readLine();
-        }
-        catch ( IOException e )
-        {
-            e.printStackTrace();
-            return null;
         }
     }
 }

@@ -25,6 +25,7 @@ public abstract class ConfiguredExample
     {
         IntrospectionAttribute[] value() default {};
     }
+
     public enum IntrospectionAttribute
     {
         GARBAGE_COLLECTORS
@@ -32,13 +33,12 @@ public abstract class ConfiguredExample
             @Override
             String value()
             {
-                List<GarbageCollectorMXBean> collectors = ManagementFactory
-                    .getGarbageCollectorMXBeans();
-                String[] names = new String[ collectors.size() ];
+                List<GarbageCollectorMXBean> collectors = ManagementFactory.getGarbageCollectorMXBeans();
+                String[] names = new String[collectors.size()];
                 int i = 0;
                 for ( GarbageCollectorMXBean gc : collectors )
                 {
-                    names[ i++ ] = gc.getName();
+                    names[i++] = gc.getName();
                 }
                 return Arrays.toString( names );
             }
@@ -60,8 +60,7 @@ public abstract class ConfiguredExample
     protected ConfiguredExample( String neo4j_config_file )
     {
         this.prefix = getClass().getSimpleName();
-        String config_file = System
-            .getProperty( "ConfiguredExample.neo4j-config-file" );
+        String config_file = System.getProperty( "ConfiguredExample.neo4j-config-file" );
         if ( config_file == null || config_file.trim().equals( "" ) )
         {
             config_file = neo4j_config_file;
@@ -103,8 +102,7 @@ public abstract class ConfiguredExample
     public final String toString()
     {
         Class<? extends ConfiguredExample> cls = getClass();
-        StringRepresentation repr = cls
-            .getAnnotation( StringRepresentation.class );
+        StringRepresentation repr = cls.getAnnotation( StringRepresentation.class );
         if ( repr == null )
         {
             return super.toString();
@@ -127,37 +125,43 @@ public abstract class ConfiguredExample
 
     protected String stringProperty( String key, String defaultValue )
     {
-        return System.getProperty( prefix + key, properties.getProperty( key,
-            defaultValue ) );
+        return System.getProperty( prefix + "." + key, properties.getProperty(
+                key, defaultValue ) );
     }
 
     protected int intProperty( String key, int defaultValue )
     {
-        return Integer.parseInt( stringProperty( key, Integer
-            .toString( defaultValue ) ) );
+        return Integer.parseInt( stringProperty( key,
+                Integer.toString( defaultValue ) ) );
     }
 
     protected boolean booleanProperty( String key, boolean defaultValue )
     {
-        return Boolean.parseBoolean( stringProperty( key, Boolean
-            .toString( defaultValue ) ) );
+        return Boolean.parseBoolean( stringProperty( key,
+                Boolean.toString( defaultValue ) ) );
     }
 
     @SuppressWarnings( "unchecked" )
     protected <E extends Enum> E enumProperty( Class<E> type, String key,
-        E defaultValue )
+            E defaultValue )
     {
-        return ( E ) Enum.valueOf( type, stringProperty( key, defaultValue
-            .name() ) );
+        return (E) Enum.valueOf( type,
+                stringProperty( key, defaultValue.name() ) );
     }
 
     protected void printProgress( long current, long total, long time )
     {
-        if ( ( current + 1 ) % ( total / 100 ) == 0 )
+        try
         {
-            time = System.currentTimeMillis() - time;
-            System.out.println( "" + ( ( current * 100 / total ) + 1 )
-                + "% -- " + ( time / 1000.0 ) + "s" );
+            if ( ( current + 1 ) % ( total / 100 ) == 0 )
+            {
+                time = System.currentTimeMillis() - time;
+                System.out.println( "" + ( ( current * 100 / total ) + 1 )
+                                    + "% -- " + ( time / 1000.0 ) + "s" );
+            }
+        }
+        catch ( Exception ex )
+        {
         }
     }
 }

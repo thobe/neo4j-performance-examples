@@ -74,7 +74,7 @@ function jvm_configurations() {
 }
 
 configuration > UsersAndBooks.properties
-insertion > create.properties
+#insertion > create.properties
 
 rm -f create.out
 
@@ -100,7 +100,6 @@ for kind in {MIN,EXPECTED,MAX}; do
                 &> traverse-${kind}-${settings}-opt_${opt}.out
         done
     done
-    break
 done
 
 tar cf `date +%Y-%m-%d.%H.%M`.tar *.out

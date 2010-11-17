@@ -57,20 +57,26 @@ public final class MainMethod
     {
         if ( ( method.getModifiers() & Modifier.STATIC ) == 0 )
         {
-            throw new IllegalArgumentException();
+            throw new IllegalArgumentException( "Entry method must be static" );
         }
         Class<?>[] params = method.getParameterTypes();
         if ( params.length > 1 )
         {
-            throw new IllegalArgumentException();
+            for ( Class<?> param : params )
+            {
+                if ( param != String.class )
+                {
+                    throw new IllegalArgumentException( "Entry method parameters must be String" );
+                }
+            }
         }
         else if ( params.length == 1 )
         {
             Class<?> param = params[0];
-            if ( !param.equals( String.class )
-                 && !param.equals( String[].class ) )
+            if ( ( param != String.class ) && ( param != String[].class ) )
             {
-                throw new IllegalArgumentException();
+                throw new IllegalArgumentException(
+                        "Single parameter of entry method must be either String or String[]" );
             }
         }
     }

@@ -62,7 +62,6 @@ public class UsersAndBooks extends ConfiguredExample
 
     private final Random random = new Random();
     private final RelationshipType FAVORITE = DynamicRelationshipType.withName( "FAVORITE" );
-    private final String storeDir;
     private final int numBooks;
     private final int numUsers;
     private final boolean renderProgression;
@@ -73,7 +72,6 @@ public class UsersAndBooks extends ConfiguredExample
     private UsersAndBooks( String neo4j_config_file )
     {
         super( neo4j_config_file );
-        this.storeDir = stringProperty( "storeDir", "target/neodb" );
         int BOOKS = intProperty( "numBooks", 1 * MILLION );
         int USERS = intProperty( "numUsers", 100 * MILLION );
         int MIN_FAVORITES = intProperty( "minFavorites", 100 );
@@ -131,8 +129,7 @@ public class UsersAndBooks extends ConfiguredExample
 
     private void createGraph()
     {
-        BatchInserter batch = new BatchInserterImpl( storeDir,
-                neo4jConfiguration );
+        BatchInserter batch = new BatchInserterImpl( getStoreDir(), neo4jConfiguration );
         try
         {
             create( batch );
@@ -145,8 +142,7 @@ public class UsersAndBooks extends ConfiguredExample
 
     private void traverseGraph()
     {
-        GraphDatabaseService graphdb = new EmbeddedGraphDatabase( storeDir,
-                neo4jConfiguration );
+        GraphDatabaseService graphdb = new EmbeddedGraphDatabase( getStoreDir(), neo4jConfiguration );
         try
         {
             for ( int i = 0; i < numTraversals; i++ )

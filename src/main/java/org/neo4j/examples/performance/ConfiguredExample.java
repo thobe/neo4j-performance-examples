@@ -129,6 +129,11 @@ public abstract class ConfiguredExample
                 key, defaultValue ) );
     }
 
+    protected String getStoreDir()
+    {
+        return stringProperty( "storeDir", "target/neo4j-db/" + getClass().getSimpleName() );
+    }
+
     protected int intProperty( String key, int defaultValue )
     {
         return Integer.parseInt( stringProperty( key,

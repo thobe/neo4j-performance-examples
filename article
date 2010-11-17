@@ -13,6 +13,7 @@ function memory_mapping() {
     echo neostore.propertystore.db.mapped_memory=0M
     echo neostore.propertystore.db.strings.mapped_memory=0M
     echo neostore.propertystore.db.arrays.mapped_memory=0M
+    echo cache_type=soft
 }
 
 function small() {
@@ -100,6 +101,7 @@ for kind in {MIN,EXPECTED,MAX}; do
                 &> traverse-${kind}-${settings}-opt_${opt}.out
         done
     done
+    exit
 done
 
 tar cf `date +%Y-%m-%d.%H.%M`.tar *.out
